@@ -122,19 +122,31 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 
 ## API Endpoints
 
+### Health Check
+- `GET /api/health/` - Health check endpoint to verify database connection
+
 ### Authentication
-- `/users/login` - Obtain JWT token
-- `/users/refresh` - Refresh JWT token
+- `POST /api/users/register/` - User registration
+- `POST /api/users/login/` - Obtain JWT token
+- `POST /api/users/refresh/` - Refresh JWT token
+- `GET /api/users/profile/` - Get user profile (authenticated)
+- `PUT/PATCH /api/users/profile/` - Update user profile (authenticated)
 
 ### Admin
 - `/admin/` - Django admin panel
+
+### API Documentation
+- `/api/swagger/` - Swagger UI
+- `/api/redoc/` - ReDoc documentation
 
 ## Features
 
 - ✅ Django REST Framework
 - ✅ JWT Authentication (djangorestframework-simplejwt)
+- ✅ Health check endpoint for monitoring
 - ✅ CORS Support
 - ✅ WhiteNoise for static files
+- ✅ Swagger/OpenAPI documentation
 - ✅ SQLite database (SQLite3)
 - ✅ Dockerized for easy deployment
 - ✅ Environment-based configuration

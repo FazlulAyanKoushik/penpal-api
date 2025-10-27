@@ -19,9 +19,40 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
+from .health_check import health_check
+
+
+# Swagger schema view
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Penpal API",
+        default_version="v1",
+        description="API documentation for Penpal Backend",
+        terms_of_service="https://www.penpal.com/terms/",
+        contact=openapi.Contact(email="support@penpal.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=[permissions.AllowAny],
+)
+
+# Optional: for SWAGGER_SETTINGS["DEFAULT_INFO"]
+api_info = openapi.Info(
+    title="Penpal API",
+    default_version="v1",
+    description="Core API endpoints for Penpal",
+)
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("users", include("accounts.urls")),
+    path('api/health/', health_check, name='health-check'),
+    path('api/swagger/', schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
+    path('api/redoc/', schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    path('api/swagger.json/', schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    path('api/users/', include("accounts.urls")),
+    path('api/documents/', include("document.urls"))
 ]
 
 
