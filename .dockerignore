@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist/
+build/
+venv/
+env/
+.env
+.venv
+__pypackages__/
+
+# Django
+*.log
+*.db
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+staticfiles/
+mediafiles/
+media/
+static/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.sqlite3
+.python-version
+
+# Documentation
+*.md
+!README.md
+
+# Docker (these should be in the repo)
+# Dockerfile
+# docker-compose.yml
+# .dockerignore
+

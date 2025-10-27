@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    container_name: penpal_web
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./penpal:/app/penpal
+      - media_files:/app/penpal/media
+      - static_files:/app/penpal/staticfiles
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  media_files:
+  static_files:
+
