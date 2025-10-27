@@ -175,5 +175,6 @@ staticfiles/
 mediafiles/
 media/
 static/
+.DS_Store
 
 /.vscode/settings.json
