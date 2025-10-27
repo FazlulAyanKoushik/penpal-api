@@ -31,10 +31,9 @@ Edit `.env` with your preferred settings (optional for development).
 ### 2. Build and run the application
 
 ```bash
-# Build and start the containers
 docker-compose up --build
 
-# Or run in detached mode
+# Detached mode
 docker-compose up -d --build
 ```
 
@@ -124,8 +123,8 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 ## API Endpoints
 
 ### Authentication
-- `/api/token/` - Obtain JWT token
-- `/api/token/refresh/` - Refresh JWT token
+- `/users/login` - Obtain JWT token
+- `/users/refresh` - Refresh JWT token
 
 ### Admin
 - `/admin/` - Django admin panel
