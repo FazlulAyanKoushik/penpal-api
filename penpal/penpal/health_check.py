@@ -31,3 +31,4 @@ def health_check(request):
             'error': str(e)
         }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
+
