@@ -1,50 +1,95 @@
 # views.py
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
+from django.template.context_processors import request
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
-from .models import Document
-from .serilaizers import DocumentSerializer
+from rest_framework import filters
+from rest_framework import generics
+from rest_framework import permissions
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+
+from .models import Document, Tag, Comment
+from .permissions import DocumentPermission, CommentPermission
+from .serilaizers import TagSerializer, CommentSerializer, DocumentListSerializer, DocumentDetailSerializer, \
+    DocumentSerializer
 
 
-class DocumentViewSet(viewsets.ModelViewSet):
-    queryset = Document.objects.all()  # Add queryset for router
-    serializer_class = DocumentSerializer
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['document_type', 'status', 'editor_type']
-    search_fields = ['title', 'description', 'tags']
-    ordering_fields = ['created_at', 'updated_at', 'title', 'word_count']
-    ordering = ['-updated_at']
+
+
+class DocumentListCreateView(generics.ListCreateAPIView):
+    serializer_class = DocumentListSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['document_type', 'status', 'editor_type', 'is_public', 'author__id']
+    search_fields = ['title', 'description', 'content']
+    ordering_fields = ['created_at', 'updated_at']
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return DocumentSerializer
+        return DocumentListSerializer
 
     def get_queryset(self):
-        return Document.objects.filter(author=self.request.user)
+        user = self.request.user
+        qs = (Document.objects.select_related('author')
+              .prefetch_related('tags','comments')
+              .filter(soft_delete=False))
+        if user.is_authenticated:
+            qs = qs.filter(Q(is_public=True) | Q(author=user))
+        else:
+            qs = qs.filter(is_public=True)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=False, methods=['get'])
-    def stats(self, request):
-        """Get document statistics for the authenticated user"""
-        queryset = self.get_queryset()
 
-        stats = {
-            'total': queryset.count(),
-            'published': queryset.filter(status='published').count(),
-            'draft': queryset.filter(status='draft').count(),
-            'total_words': sum(doc.word_count for doc in queryset),
-            'types': {},
-            'editor_types': {}
-        }
+class DocumentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a document.
+    """
+    serializer_class = DocumentDetailSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, DocumentPermission]
+    queryset = (Document.objects.select_related('author')
+                .prefetch_related('tags','comments')
+                .filter(soft_delete=False))
 
-        # Document types
-        for doc_type, _ in Document._meta.get_field('document_type').choices:
-            stats['types'][doc_type] = queryset.filter(document_type=doc_type).count()
+    def perform_destroy(self, instance):
+        # Soft delete instead of actual delete
+        instance.soft_delete = True
+        instance.save()
 
-        # Editor types
-        for editor_type, _ in Document._meta.get_field('editor_type').choices:
-            stats['editor_types'][editor_type] = queryset.filter(editor_type=editor_type).count()
 
-        return Response(stats)
+class CommentListCreateView(generics.ListCreateAPIView):
+    """
+    List all comments for a document or create a new one.
+    """
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, CommentPermission]
+
+    def get_queryset(self):
+        document_id = self.kwargs.get('document_id')
+        return (Comment.objects.select_related('document', 'author')
+                .filter(document_id=document_id, soft_delete=False))
+
+    def perform_create(self, serializer):
+        document_id = self.kwargs.get('document_id')
+        serializer.save(author=self.request.user, document_id=document_id)
+
+
+class CommentRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update, or delete a specific comment.
+    """
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, CommentPermission]
+    queryset = (Comment.objects.select_related('document', 'author')
+                .filter(soft_delete=False))
+
+    def perform_destroy(self, instance):
+        instance.soft_delete = True
+        instance.save()

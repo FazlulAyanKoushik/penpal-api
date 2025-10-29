@@ -64,4 +64,6 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
 
     def get_object(self):
-        return self.request.user
+        return User.objects.select_related('profile').get(
+            pk=self.request.user.pk
+        )

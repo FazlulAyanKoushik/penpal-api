@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
+from accounts.models import Profile
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -78,9 +79,49 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile"""
+    avatar = serializers.ImageField(source='profile.avatar', required=False)
+    bio = serializers.CharField(source='profile.bio', required=False, allow_blank=True)
+    preferences = serializers.JSONField(source='profile.preferences', required=False)
+    timezone = serializers.CharField(source='profile.timezone', required=False)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
-        read_only_fields = ('username', 'email')
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'avatar', 'bio', 'preferences', 'timezone'
+        )
+        read_only_fields = ('id', 'username',)
+
+    def update(self, instance, validated_data):
+        """
+        Optimize DB operations by updating the related Profile in a single save.
+        """
+        profile_data = validated_data.pop('profile', {})
+        user_updated = False
+        profile_updated = False
+
+        # Update User fields
+        for attr, value in validated_data.items():
+            if getattr(instance, attr) != value:
+                setattr(instance, attr, value)
+                user_updated = True
+
+        # Update Profile fields
+        profile = getattr(instance, 'profile', None)
+        if not profile:
+            # Handle edge case: if profile not auto-created
+            profile = Profile.objects.create(user=instance)
+
+        for attr, value in profile_data.items():
+            if getattr(profile, attr) != value:
+                setattr(profile, attr, value)
+                profile_updated = True
+
+        # Save only if changed
+        if user_updated:
+            instance.save(update_fields=list(validated_data.keys()))
+        if profile_updated:
+            profile.save(update_fields=list(profile_data.keys()))
+
+        return instance
 
